@@ -5,12 +5,9 @@ const app = express();
 // parse incoming requests
 app.use(express.json());
 
+const dbUrl = 'postgres://webadmin:XFSgdd55823@10.104.12.11:5432/Books';
 // connect to connection to the database
-const sequelize = new Sequelize("database", "username", "password", {
-  host: "localhost",
-  dialect: "sqlite",
-  storage: "./Database/Book.sqlite",
-});
+const sequelize = new Sequelize(dbUrl);
 
 // define the book model
 const Book = sequelize.define("book", {
