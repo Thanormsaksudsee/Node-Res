@@ -1,117 +1,211 @@
-const express = require("express");
-const Sequelize = require("sequelize");
+const express = require('express');
+const sqlite3 = require('sqlite3');
 const app = express();
 
-// parse incoming requests
+const db = new sqlite3.Database('./Database/Animal.sqlite');
+
 app.use(express.json());
+// app.use(express.static(__dirname + '/Myproject'));
 
-const dbUrl = 'postgres://webadmin:XFSgdd55823@10.104.12.11:5432/Books';
-// connect to connection to the database
-const sequelize = new Sequelize(dbUrl);
+// สร้างตาราง Habitat of Animal
+db.run(`CREATE TABLE IF NOT EXISTS HabitatOfAnimal (
+    AnimalID TEXT PRIMARY KEY,
+    HabitatID TEXT
+)`);
 
-// define the book model
-const Book = sequelize.define("book", {
-  id: {
-    type: Sequelize.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  title: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-  author: {
-    type: Sequelize.STRING,
-    allowNull: false,
-  },
-});
+// สร้างตาราง Animal
+db.run(`CREATE TABLE IF NOT EXISTS Animal (
+    ID INTEGER PRIMARY KEY,
+    Name TEXT,
+    Data TEXT,
+    Pic TEXT
+)`);
 
-// create the books table if it doesn't exist
-sequelize.sync();
+// สร้างตาราง Habitat
+db.run(`CREATE TABLE IF NOT EXISTS Habitat (
+    ID INTEGER PRIMARY KEY,
+    Name TEXT,
+    Data TEXT,
+    Pic TEXT
+)`);
 
-// route to get all books
-app.get("/books", (req, res) => {
-  Book.findAll()
-    .then((books) => {
-      res.json(books);
-    })
-    .catch((err) => {
-      res.status(500).send(err);
-    });
-});
-
-// route to get a book by id
-app.get("/books/:id", (req, res) => {
-  Book.findByPk(req.params.id)
-    .then((book) => {
-      if (!book) {
-        res.status(404).send("Book not found");
-      } else {
-        res.json(book);
-      }
-    })
-    .catch((err) => {
-      res.status(500).send(err);
-    });
-});
-
-// route to create a book
-app.post("/books", (req, res) => {
-  Book.create(req.body)
-    .then((book) => {
-      res.json(book);
-    })
-    .catch((err) => {
-      res.status(500).send(err);
-    });
-});
-
-// route to update a book
-app.put("/books/:id", (req, res) => {
-  Book.findByPk(req.params.id)
-    .then((book) => {
-      if (!book) {
-        res.status(404).send("Book not found");
-      } else {
-        book
-          .update(req.body)
-          .then(() => {
-            res.json(book);
-          })
-          .catch((err) => {
+// CRUD สำหรับ HabitatOfAnimal
+app.get('/HabitatOfAnimal', (req, res) => {
+    db.all('SELECT * FROM HabitatOfAnimal', (err, rows) => {
+        if (err) {
             res.status(500).send(err);
-          });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send(err);
+        } else {
+            res.json(rows);
+        }
     });
 });
 
-// route to delete a book
-app.delete("/books/:id", (req, res) => {
-  Book.findByPk(req.params.id)
-    .then((book) => {
-      if (!book) {
-        res.status(404).send("Book not found");
-      } else {
-        book
-          .destroy()
-          .then(() => {
+app.get('/HabitatOfAnimal/:id', (req, res) => {
+    db.get('SELECT * FROM HabitatOfAnimal WHERE AnimalID = ?', req.params.id, (err, row) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            if (!row) {
+                res.status(404).send('HabitatOfAnimal Not found');
+            } else {
+                res.json(row);
+            }
+        }
+    });
+});
+
+app.post('/HabitatOfAnimal', (req, res) => {
+    const habitatOfAnimal = req.body;
+    db.run('INSERT INTO HabitatOfAnimal (AnimalID, HabitatID) VALUES (?, ?)', habitatOfAnimal.AnimalID, habitatOfAnimal.HabitatID, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            habitatOfAnimal.AnimalID = this.lastID;
+            res.send(habitatOfAnimal);
+        }
+    });
+});
+
+app.put('/HabitatOfAnimal/:id', (req, res) => {
+    const habitatOfAnimal = req.body;
+    db.run('UPDATE HabitatOfAnimal SET AnimalID = ?, HabitatID = ? WHERE AnimalID = ?', habitatOfAnimal.AnimalID, habitatOfAnimal.HabitatID, req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send(habitatOfAnimal);
+        }
+    });
+});
+
+app.delete('/HabitatOfAnimal/:id', (req, res) => {
+    db.run('DELETE FROM HabitatOfAnimal WHERE AnimalID = ?', req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
             res.send({});
-          })
-          .catch((err) => {
-            res.status(500).send(err);
-          });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send(err);
+        }
     });
 });
 
-// start the server
-const port = process.env.PORT || 3000;
+// CRUD สำหรับ Animal
+app.get('/Animal', (req, res) => {
+    db.all('SELECT * FROM Animal', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+app.get('/Animal/:id', (req, res) => {
+    db.get('SELECT * FROM Animal WHERE ID = ?', req.params.id, (err, row) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            if (!row) {
+                res.status(404).send('Animal Not found');
+            } else {
+                res.json(row);
+            }
+        }
+    });
+});
+
+app.post('/Animal', (req, res) => {
+    const animal = req.body;
+    db.run('INSERT INTO Animal (Name, Data, Pic) VALUES (?, ?, ?)', animal.Name, animal.Data, animal.Pic, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            animal.ID = this.lastID;
+            res.send(animal);
+        }
+    });
+
+});
+
+app.put('/Animal/:id', (req, res) => {
+    const animal = req.body;
+    db.run('UPDATE Animal SET Name = ?, Data = ?, Pic = ? WHERE ID = ?', animal.Name, animal.Data, animal.Pic, req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send(animal);
+        }
+    });
+});
+
+app.delete('/Animal/:id', (req, res) => {
+    db.run('DELETE FROM Animal WHERE ID = ?', req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send({});
+        }
+    });
+});
+
+// CRUD สำหรับ Habitat
+app.get('/Habitat', (req, res) => {
+    db.all('SELECT * FROM Habitat', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.json(rows);
+        }
+    });
+});
+
+app.get('/Habitat/:id', (req, res) => {
+    db.get('SELECT * FROM Habitat WHERE ID = ?', req.params.id, (err, row) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            if (!row) {
+                res.status(404).send('Habitat Not found');
+            } else {
+                res.json(row);
+            }
+        }
+    });
+});
+
+app.post('/Habitat', (req, res) => {
+    const habitat = req.body;
+    db.run('INSERT INTO Habitat (Name, Data, Pic) VALUES (?, ?, ?)', habitat.Name, habitat.Data, habitat.Pic, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            habitat.ID = this.lastID;
+            res.send(habitat);
+        }
+    });
+});
+
+app.put('/Habitat/:id', (req, res) => {
+    const habitat = req.body;
+    db.run('UPDATE Habitat SET Name = ?, Data = ?, Pic = ? WHERE ID = ?', habitat.Name, habitat.Data, habitat.Pic, req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send(habitat);
+        }
+    });
+});
+
+app.delete('/Habitat/:id', (req, res) => {
+    db.run('DELETE FROM Habitat WHERE ID = ?', req.params.id, function (err) {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.send({});
+        }
+    });
+});
+
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`Listening on port ${port}...`);
 });
+
